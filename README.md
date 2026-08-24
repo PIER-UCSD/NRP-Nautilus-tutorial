@@ -2,8 +2,8 @@
 
 How to run GPU experiments on [NRP Nautilus](https://nrp.ai) using the Shi Lab
 namespace — from first login to a reproducible batch job. Every command in
-this guide has been used in real lab runs, and every error in §9 actually
-happened to us.
+this guide has been used in real lab runs — and because things do break, there
+is a table of the errors we actually hit (with fixes) near the end (Step 9).
 
 **Two ways to learn it:** read this guide top to bottom, or open
 [`notebooks/01_first_gpu_job.ipynb`](notebooks/01_first_gpu_job.ipynb) and do
@@ -22,7 +22,7 @@ machines — you describe *what to run* in a YAML file, submit it with
 **Our namespace:** `shi-group-ece-advanced`.
 **What GPUs can I use?** Availability changes — check the live list on the
 [NRP resources page](https://portal.nrp-nautilus.io/resources) or run
-`kubectl get nodes -L nvidia.com/gpu.product` (§4). Note that premium GPUs
+`kubectl get nodes -L nvidia.com/gpu.product` (Step 4). Note that premium GPUs
 (A100/H100-class) require an explicit namespace quota grant; without one, the
 free pool (consumer and workstation cards up to 48 GB) is what schedules.
 
@@ -172,7 +172,7 @@ What the statuses mean:
 | `Pending` | requested resources not schedulable right now | `describe pod`; widen GPU list or shrink request |
 | `OOMKilled` | memory limit exceeded | raise memory, or reduce batch/model |
 | `Error` / CrashLoop | command, image, data, or env failed | `logs` + `describe pod` |
-| `StartError` (NVML mismatch) | broken driver on that node | exclude the node (§4), relaunch |
+| `StartError` (NVML mismatch) | broken driver on that node | exclude the node (Step 4), relaunch |
 
 **For anything long, use the disconnect-proof pattern** — `kubectl exec`
 sessions die (laptop sleeps, network resets). Launch detached, log to a file,
@@ -241,7 +241,7 @@ kubectl apply -f examples/interactive_pod.yaml
 kubectl get pods -w
 kubectl logs my-gpu-pod | grep READY_FOR_CODE
 
-# 2. pin fragile deps INSIDE the pod (see §9 for why), copy code in
+# 2. pin fragile deps INSIDE the pod (the errors table explains why), copy code in
 kubectl exec my-gpu-pod -- pip install -q 'transformers==4.46.3' 'accelerate==1.1.1'
 kubectl cp profile.py my-gpu-pod:/workspace/profile.py
 
@@ -261,7 +261,7 @@ kubectl delete pod my-gpu-pod
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Pod `StartError`: "NVML: Driver/library version mismatch" | broken driver **on that node** | exclude the node by hostname (§4), relaunch |
+| Pod `StartError`: "NVML: Driver/library version mismatch" | broken driver **on that node** | exclude the node by hostname (Step 4), relaunch |
 | Pod `Pending` forever | no free GPU matching your list | widen the product list, or try later |
 | Setup script dies silently at `conda activate` | conda's activate breaks under `set -u` | skip activation; call `/opt/conda/envs/ea/bin/python` by absolute path |
 | `conda create` fails on ToS | new conda requires accepting channel ToS | `conda create -n ea -c conda-forge --override-channels python=3.10` |
@@ -270,7 +270,7 @@ kubectl delete pod my-gpu-pod
 | `pip install -r requirements.txt` half-installs | one package (e.g. flash-attn) fails and aborts the rest | filter it out (`grep -v flash-attn`), install the rest, use fallbacks (`VLLM_ATTENTION_BACKEND=TORCH_SDPA`) |
 | Imports break after `pip install -U something` | unpinned pip upgraded torch/transformers past compatibility | **pin versions**; if torchvision breaks transformers, `pip uninstall torchvision` |
 | `kubectl exec` hangs or "connection reset" | pod CPU-saturated, or API-server flakiness | it does NOT mean your job died — use `kubectl get pod` (light) + the log file |
-| Results vanished with the pod | they were on emptyDir | put anything precious on the PVC (§6) |
+| Results vanished with the pod | they were on emptyDir | put anything precious on the PVC (Step 6) |
 
 ## Step 10 — Lab rules checklist (before any substantial run)
 
@@ -300,6 +300,22 @@ kubectl delete pod my-gpu-pod
 | What GPUs exist | `kubectl get nodes -L nvidia.com/gpu.product` |
 
 ---
+
+## Contributing — help keep this guide alive
+
+The cluster changes, images change, new errors appear. This repo works as a
+small lab community effort:
+
+- **Hit an error that isn't in the Step 9 table?** [Open an issue](../../issues/new/choose)
+  with the symptom, what caused it, and (if you found one) the fix — that's
+  exactly how the current table was built.
+- **Have a fix or an improvement?** Pull requests are welcome — to the guide,
+  the templates, or the notebook.
+- **Something in the guide conflicts with current NRP docs?** The official
+  docs win; open an issue so the guide gets corrected.
+
+Maintained and reviewed by **Daniela Rojas** ([@d2rojas](https://github.com/d2rojas)) —
+issues and PRs are reviewed to keep the guide current.
 
 ## What's in this repo
 
