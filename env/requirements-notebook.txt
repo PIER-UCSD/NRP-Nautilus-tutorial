@@ -1,0 +1,6 @@
+# Laptop side ONLY — what you need to RUN the tutorial notebook.
+# The notebook itself imports nothing outside the Python standard library
+# (subprocess, json, pathlib, ...), so this list is deliberately tiny: the only
+# thing a notebook truly needs is a kernel. Everything that can break on
+# versions lives in the container image instead (see env/Dockerfile).
+ipykernel==6.29.5
