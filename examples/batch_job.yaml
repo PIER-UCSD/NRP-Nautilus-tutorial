@@ -1,6 +1,8 @@
-# Reproducible batch Job: runs a command to completion, retries once on
-# failure, and is the record of exactly what ran. Use this once your script
-# already works end-to-end (develop with interactive_pod.yaml first).
+# Reproducible batch Job — THE LAB DEFAULT for real runs: the actual command
+# lives in this YAML (lab rule: never reserve a GPU with sleep-infinity and
+# start training by hand). Retries once on failure and is the record of
+# exactly what ran. Debug first locally, then briefly in interactive_pod.yaml
+# if the cluster environment itself needs debugging.
 #
 #   kubectl apply -f batch_job.yaml
 #   kubectl logs -f job/my-experiment

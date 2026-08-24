@@ -1,5 +1,9 @@
-# Interactive develop-mode pod: starts, installs base deps, prints
+# Interactive DEBUG-SESSION pod: starts, installs base deps, prints
 # READY_FOR_CODE, then sleeps so you can kubectl cp / exec into it.
+#
+# ⚠ LAB RULE: this is for short debugging sessions ONLY — delete it the same
+# day. Never use a sleep-infinity pod to reserve a GPU and "start training
+# later": real runs go in a Job with the command in the YAML (batch_job.yaml).
 #
 #   kubectl apply -f interactive_pod.yaml
 #   kubectl logs my-gpu-pod | grep READY_FOR_CODE
