@@ -1,0 +1,67 @@
+# Reproducible batch Job: runs a command to completion, retries once on
+# failure, and is the record of exactly what ran. Use this once your script
+# already works end-to-end (develop with interactive_pod.yaml first).
+#
+#   kubectl apply -f batch_job.yaml
+#   kubectl logs -f job/my-experiment
+#   POD=$(kubectl get pods -l job-name=my-experiment -o jsonpath='{.items[0].metadata.name}')
+#   kubectl cp $POD:/output ./results
+#   kubectl delete job my-experiment       # ALWAYS when done
+#
+# This example assumes: a PVC named my-lab-pvc (see pvc.yaml) and secrets
+# hf-secret / wandb-secret (see README §6). Delete those blocks if unused.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-experiment
+spec:
+  backoffLimit: 1              # retry once, then give up
+  template:
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    values: [NVIDIA-A10, NVIDIA-A40, NVIDIA-L40, NVIDIA-L40S, NVIDIA-RTX-A6000]
+      containers:
+        - name: main
+          image: pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+          command: ["/bin/bash", "-lc"]
+          args:
+            - |
+              set -euo pipefail
+              echo "=== node: $(hostname) ==="; nvidia-smi -L
+              pip install -q nvidia-ml-py 'transformers==4.46.3' 'accelerate==1.1.1'
+              # your actual work goes here; end with a greppable sentinel
+              python /ckpt/code/my_experiment.py --out /ckpt/results/run1
+              echo EXPERIMENT_DONE
+          env:
+            - name: HF_HOME
+              value: /ckpt/hf_cache           # cached models survive on the PVC
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef: {name: hf-secret, key: HF_TOKEN}
+            - name: WANDB_API_KEY
+              valueFrom:
+                secretKeyRef: {name: wandb-secret, key: WANDB_API_KEY}
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+              cpu: "8"
+              memory: 32Gi
+            requests:
+              nvidia.com/gpu: "1"
+              cpu: "8"
+              memory: 32Gi
+          volumeMounts:
+            - {name: ckpt, mountPath: /ckpt}
+            - {name: dshm, mountPath: /dev/shm}   # vLLM / NCCL need big shm
+      volumes:
+        - name: ckpt
+          persistentVolumeClaim: {claimName: my-lab-pvc}
+        - name: dshm
+          emptyDir: {medium: Memory, sizeLimit: 8Gi}

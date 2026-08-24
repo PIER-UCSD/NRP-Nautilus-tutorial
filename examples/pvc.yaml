@@ -1,0 +1,19 @@
+# Persistent volume claim — apply ONCE, then mount from any pod/job.
+# Survives pod deletion, image changes, even (usually) you.
+# rook-cephfs is ReadWriteMany: several pods can mount it at the same time.
+#
+#   kubectl apply -f pvc.yaml
+#   kubectl get pvc                # STATUS should become Bound
+#
+# Rename to something owned ("danielar-ckpt-pvc") if it's personal, or keep a
+# shared one per project. Ask before deleting a PVC — data is gone forever.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-lab-pvc
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: rook-cephfs
+  resources:
+    requests:
+      storage: 60Gi
