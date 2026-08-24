@@ -1,10 +1,13 @@
 # Nautilus for the Shi Lab — a practical tutorial
 
-How to run GPU experiments on [NRP Nautilus](https://nrp.ai) using our lab
-namespace. This guide merges the lab's official policy (Prof. Shi's *"Running
-Experiments on UCSD/NRP Nautilus"*) with hands-on detail from real runs
-(energy profiling + RL training, Aug 2026). Every command was actually used;
-every error in §9 actually happened.
+How to run GPU experiments on [NRP Nautilus](https://nrp.ai) using the Shi Lab
+namespace — from first login to a reproducible batch job. Every command in
+this guide has been used in real lab runs, and every error in §9 actually
+happened to us.
+
+**Two ways to learn it:** read this guide top to bottom, or open
+[`notebooks/01_first_gpu_job.ipynb`](notebooks/01_first_gpu_job.ipynb) and do
+the complete hands-on exercise cell by cell (~20 min, one small GPU).
 
 > **Golden rule (lab policy): verify correctness locally first.** Nautilus is
 > for reproducible, compute-intensive runs — not for debugging basic syntax,
@@ -17,9 +20,11 @@ machines — you describe *what to run* in a YAML file, submit it with
 `kubectl`, and the cluster finds a machine for you.
 
 **Our namespace:** `shi-group-ece-advanced`.
-**Quota reality:** A100 / H100 / H200 / GH200 = **0** (hard). What we can use
-is the free pool: RTX 2080 Ti, T4, A10, RTX 3090/4090, A40, RTX A6000, L40,
-L40S — up to 48 GB. Fine for ≤20B models and all profiling; not for 70B.
+**What GPUs can I use?** Availability changes — check the live list on the
+[NRP resources page](https://portal.nrp-nautilus.io/resources) or run
+`kubectl get nodes -L nvidia.com/gpu.product` (§4). Note that premium GPUs
+(A100/H100-class) require an explicit namespace quota grant; without one, the
+free pool (consumer and workstation cards up to 48 GB) is what schedules.
 
 ---
 
@@ -296,10 +301,11 @@ kubectl delete pod my-gpu-pod
 
 ---
 
-## Files in `examples/`
+## What's in this repo
 
 | File | What it is |
 |---|---|
+| `notebooks/01_first_gpu_job.ipynb` | **start here** — the full exercise, cell by cell |
 | `batch_job.yaml` | **the default**: reproducible Job with secrets + PVC mounts |
 | `interactive_pod.yaml` | debug-session pod: GPU + deps + `READY_FOR_CODE` + sleep |
 | `pvc.yaml` | persistent 60 Gi volume (apply once) |
@@ -307,9 +313,8 @@ kubectl delete pod my-gpu-pod
 
 **Read next when you need more detail:**
 [NRP User Docs](https://docs.nrp.ai) · [Running Batch Jobs](https://docs.nrp.ai/userdocs/running/jobs/) ·
-[Storage](https://docs.nrp.ai/userdocs/storage/intro/) · Prof. Shi's lab tutorial (the policy source for this guide).
-Real production examples live in `agent-energy-profiling/nautilus/` and
-`energy-agent-training-2026-07-29/` in the group's repos.
+[Storage](https://docs.nrp.ai/userdocs/storage/intro/) ·
+[kubectl cheat sheet](https://kubernetes.io/docs/reference/kubectl/quick-reference/).
 
 *NRP policies and resources change. If this guide conflicts with current NRP
 documentation, follow the official docs and tell the lab admin so this guide
