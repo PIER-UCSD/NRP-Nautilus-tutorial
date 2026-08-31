@@ -77,6 +77,12 @@ and only one of them is on your machine:
 bash env/setup_local_env.sh     # .venv + a kernel named "Nautilus Lab (.venv)"
 ```
 
+On **Windows**, use the PowerShell version (or run the bash one inside WSL):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File env\setup_local_env.ps1
+```
+
 Then select **Nautilus Lab (.venv)** in VS Code's kernel picker. The script also
 lists every kernel registered on your machine and marks the **dead** ones — a
 kernel left behind by a deleted project makes the notebook fail *before the first

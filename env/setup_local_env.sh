@@ -24,12 +24,10 @@ echo "Select it in VS Code (top-right 'Select Kernel') before running the notebo
 echo
 echo "Kernels registered on this machine — a 'DEAD' one must not be selected:"
 ./.venv/bin/python - <<'PY'
-import json, os, subprocess
-out = subprocess.run(["jupyter", "kernelspec", "list", "--json"],
-                     capture_output=True, text=True).stdout
-for name, spec in json.loads(out or '{"kernelspecs":{}}')["kernelspecs"].items():
-    argv = spec["spec"]["argv"]
-    interp = argv[0]
-    state = "ok  " if (os.path.exists(interp) or "/" not in interp) else "DEAD"
+import os
+from jupyter_client.kernelspec import KernelSpecManager   # ships with ipykernel
+for name, sp in KernelSpecManager().get_all_specs().items():
+    interp = sp["spec"]["argv"][0]
+    state = "ok  " if (os.path.exists(interp) or os.sep not in interp) else "DEAD"
     print(f"  [{state}] {name:<18} {interp}")
 PY
