@@ -7,7 +7,10 @@ is a table of the errors we actually hit (with fixes) near the end (Step 9).
 
 **Two ways to learn it:** read this guide top to bottom, or open
 [`notebooks/01_first_gpu_job.ipynb`](notebooks/01_first_gpu_job.ipynb) and do
-the complete hands-on exercise cell by cell (~20 min, one small GPU).
+the complete hands-on exercise cell by cell (~20 min, one small GPU). The
+notebook is self-contained: **section 0 checks your setup** (kubectl, the
+kubelogin plugin, your config, namespace access) and prints the exact fix for
+whatever is missing, so start there if a command in this guide fails.
 
 > **Golden rule (lab policy): verify correctness locally first.** Nautilus is
 > for reproducible, compute-intensive runs — not for debugging basic syntax,
@@ -37,7 +40,12 @@ free pool (consumer and workstation cards up to 48 GB) is what schedules.
 3. Install `kubectl` **and `kubelogin`** (`brew install kubectl int128/kubelogin/kubelogin`
    on macOS), then follow NRP's
    [Getting Started](https://docs.nrp.ai/userdocs/start/getting-started/) to
-   download your config into `~/.kube/config`.
+   download your config into `~/.kube/config`. `kubelogin` installs a binary
+   called **`kubectl-oidc_login`** — that is the name to check for
+   (`which kubectl-oidc_login`); `which kubelogin` may find nothing even on a
+   correct install. `kubectl` locates that plugin *through your `PATH`*, so
+   anything that starts with a short `PATH` (notably a Jupyter kernel launched
+   from the Dock — see Step 9) cannot authenticate.
 4. Set the lab namespace as your default:
 
 ```bash
@@ -51,6 +59,77 @@ kubectl config current-context   # should print: nautilus
 kubectl get pods                 # empty list is fine; an error is not
 kubectl oidc-login clean         # if auth ever goes stale, then retry
 ```
+
+## Step 0.5 — One environment for everyone (do this once)
+
+Version drift ("works on my laptop") is the most expensive kind of problem on a
+shared cluster, so this repo pins the environment in **two separate places** —
+and only one of them is on your machine:
+
+| Layer | Pinned by | What lives there |
+|---|---|---|
+| **Your laptop** — control plane | `env/requirements-notebook.txt` (just `ipykernel`) | `kubectl` + a Python kernel. The tutorial notebook imports **only the standard library**, so there is nothing here that can drift between students. |
+| **The container** — where your code runs | `env/Dockerfile` + `env/requirements-lab.txt`, pinned **by digest** | torch, CUDA, transformers, your deps. This is where versions actually break, so this is where they are frozen. |
+
+**Laptop, once:**
+
+```bash
+bash env/setup_local_env.sh     # .venv + a kernel named "Nautilus Lab (.venv)"
+```
+
+On **Windows**, use the PowerShell version (or run the bash one inside WSL):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File env\setup_local_env.ps1
+```
+
+Then select **Nautilus Lab (.venv)** in VS Code's kernel picker. The script also
+lists every kernel registered on your machine and marks the **dead** ones — a
+kernel left behind by a deleted project makes the notebook fail *before the first
+cell runs*, which looks like a broken notebook and is not one.
+
+The notebook names every object it creates after **you** (`<you>-tutorial-pod`), so
+the whole lab can do the exercise at the same time. It takes that tag from your
+**git identity** (`git config user.email` → `d2rojas@ucsd.edu` → `d2rojas`) rather
+than your machine's login name, which on a shared or inherited laptop is often
+someone else entirely. Override it with `export LAB_USER=<your-ucsd-username>` or
+by setting `USER_TAG` in the notebook's config cell.
+
+**Container, once per lab (not per student):**
+
+```bash
+REGISTRY=ghcr.io/ucsd-pier-lab bash env/build_image.sh
+```
+
+It builds `env/Dockerfile` for `linux/amd64` (Nautilus nodes are amd64, even if you
+build on an Apple Silicon Mac), pushes it, and prints the **digest**. Put the digest
+— not the tag — in your YAML, because a tag can be overwritten upstream while a
+digest cannot:
+
+```yaml
+image: ghcr.io/ucsd-pier-lab/shi-lab-gpu@sha256:<digest>
+```
+
+The notebook picks this up from an env var, so nobody has to edit cells:
+
+```bash
+export LAB_IMAGE=ghcr.io/ucsd-pier-lab/shi-lab-gpu@sha256:<digest>
+```
+
+**Why an image instead of `pip install` at job start** — the pattern the examples
+still show as a fallback:
+
+- one student's `pip install` resolving a different version than another's is
+  exactly the drift we are trying to kill;
+- a failed download mid-`pip install` leaves a half-built environment (Step 9);
+- installs at job start burn GPU-minutes on every single run.
+
+Until the lab image exists, the honest fallback is: install from
+`env/requirements-lab.txt` (all pins, no ranges) and never `pip install -U`
+anything on top of the CUDA base image — upgrading torch is the fastest way to
+break a working pod. Every Job in this repo prints its image, Python version and
+key package versions at startup, so **the log is the record of the environment
+that ran**.
 
 ## Step 1 — The recommended lab workflow
 
@@ -262,6 +341,11 @@ kubectl delete pod my-gpu-pod
 | Symptom | Cause | Fix |
 |---|---|---|
 | Pod `StartError`: "NVML: Driver/library version mismatch" | broken driver **on that node** | exclude the node by hostname (Step 4), relaunch |
+| In a notebook: `command not found: kubectl`, or `error: unknown command "oidc-login" for "kubectl"` — while the same command works in your terminal | the Jupyter/VS Code kernel did **not** inherit your shell `PATH`, so `kubectl` (or its `kubectl-oidc_login` plugin) is invisible to it | run **section 0 of the notebook** — it repairs `PATH` inside the kernel. Outside the notebook: launch the editor from a terminal, or add `/opt/homebrew/bin` (and `~/.krew/bin`) to the kernel's `PATH` |
+| `error: You must be logged in to the server (Unauthorized)` | the OIDC token cached in your keyring expired | `kubectl oidc-login clean`, then any `kubectl` command re-opens the browser login |
+| Notebook fails *before any cell runs* ("kernel failed to start") | a stale kernel is selected — its virtualenv was deleted | `bash env/setup_local_env.sh`, then pick **Nautilus Lab (.venv)**; the script marks dead kernels |
+| `pods is forbidden: User ... cannot list resource "pods"` | authenticated, but not a member of the namespace | ask Prof. Shi to add your UCSD email to the lab workspace (Step 0) |
+| Job stays `Pending` and it asks for an A100/H100 | premium GPUs need an explicit quota grant; ours is `0/0` | check with `kubectl get resourcequota`; request free-pool cards instead (Step 4) |
 | Pod `Pending` forever | no free GPU matching your list | widen the product list, or try later |
 | Setup script dies silently at `conda activate` | conda's activate breaks under `set -u` | skip activation; call `/opt/conda/envs/ea/bin/python` by absolute path |
 | `conda create` fails on ToS | new conda requires accepting channel ToS | `conda create -n ea -c conda-forge --override-channels python=3.10` |
@@ -321,11 +405,14 @@ issues and PRs are reviewed to keep the guide current.
 
 | File | What it is |
 |---|---|
-| `notebooks/01_first_gpu_job.ipynb` | **start here** — the full exercise, cell by cell |
+| `notebooks/01_first_gpu_job.ipynb` | **start here** — the full exercise, cell by cell (self-contained: preflight, unique object names per student, cleanup) |
 | `batch_job.yaml` | **the default**: reproducible Job with secrets + PVC mounts |
 | `interactive_pod.yaml` | debug-session pod: GPU + deps + `READY_FOR_CODE` + sleep |
 | `pvc.yaml` | persistent 60 Gi volume (apply once) |
 | `hello_gpu.py` | 20-line sanity script: GPU name, VRAM, exclusivity, NVML energy counter |
+| `env/setup_local_env.sh` | laptop setup: `.venv` + the **Nautilus Lab** kernel, and it flags dead kernels |
+| `env/Dockerfile` · `env/requirements-lab.txt` | the pinned lab image — one environment for every student |
+| `env/build_image.sh` | build + push it, and print the digest to pin in your YAML |
 
 **Read next when you need more detail:**
 [NRP User Docs](https://docs.nrp.ai) · [Running Batch Jobs](https://docs.nrp.ai/userdocs/running/jobs/) ·

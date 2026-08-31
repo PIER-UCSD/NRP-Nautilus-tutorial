@@ -1,0 +1,14 @@
+# Cluster side — the pinned lab environment, installed INSIDE the container.
+# This is the file that prevents "works for me" version drift between students.
+#
+# Rules:
+#   * every line is pinned to an exact version (==), never a range;
+#   * change a pin only with a reason, and tell the lab (PR to this repo);
+#   * torch/CUDA are NOT here — they come from the base image (env/Dockerfile),
+#     because pip-upgrading torch on top of a CUDA image is the single most
+#     common way to break a working pod.
+nvidia-ml-py==12.560.30
+transformers==4.46.3
+accelerate==1.1.1
+datasets==3.1.0
+numpy==1.26.4
