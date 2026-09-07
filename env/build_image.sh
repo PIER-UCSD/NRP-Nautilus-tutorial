@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build and push the lab image, then print the DIGEST to pin in your YAML.
 #
-#   REGISTRY=ghcr.io/ucsd-pier-lab bash env/build_image.sh
+#   REGISTRY=ghcr.io/pier-ucsd bash env/build_image.sh
 #
 # Registry choices (confirm which one the lab uses with the admin):
 #   * gitlab.nrp-nautilus.io/<group>/<project>  — NRP's own registry, closest to the cluster
@@ -10,7 +10,7 @@
 # in the namespace.
 set -euo pipefail
 
-REGISTRY="${REGISTRY:?set REGISTRY, e.g. REGISTRY=ghcr.io/ucsd-pier-lab}"
+REGISTRY="${REGISTRY:?set REGISTRY, e.g. REGISTRY=ghcr.io/pier-ucsd}"
 NAME="${NAME:-shi-lab-gpu}"
 TAG="${TAG:-$(date +%Y%m%d)}"
 IMAGE="$REGISTRY/$NAME:$TAG"

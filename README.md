@@ -98,7 +98,7 @@ by setting `USER_TAG` in the notebook's config cell.
 **Container, once per lab (not per student):**
 
 ```bash
-REGISTRY=ghcr.io/ucsd-pier-lab bash env/build_image.sh
+REGISTRY=ghcr.io/pier-ucsd bash env/build_image.sh
 ```
 
 It builds `env/Dockerfile` for `linux/amd64` (Nautilus nodes are amd64, even if you
@@ -107,13 +107,13 @@ build on an Apple Silicon Mac), pushes it, and prints the **digest**. Put the di
 digest cannot:
 
 ```yaml
-image: ghcr.io/ucsd-pier-lab/shi-lab-gpu@sha256:<digest>
+image: ghcr.io/pier-ucsd/shi-lab-gpu@sha256:<digest>
 ```
 
 The notebook picks this up from an env var, so nobody has to edit cells:
 
 ```bash
-export LAB_IMAGE=ghcr.io/ucsd-pier-lab/shi-lab-gpu@sha256:<digest>
+export LAB_IMAGE=ghcr.io/pier-ucsd/shi-lab-gpu@sha256:<digest>
 ```
 
 **Why an image instead of `pip install` at job start** — the pattern the examples
@@ -141,7 +141,7 @@ that ran**.
 | **D. Cleanup** | copy final outputs; delete finished/failed jobs | no abandoned jobs or wasted resources |
 
 Before any substantial run: push the exact code to GitHub
-(`github.com/ucsd-pier-lab/<your-project>`), record the commit, and log the
+(`github.com/PIER-UCSD/<your-project>`), record the commit, and log the
 run in the **Group Computing Tracker** document. Make the command
 non-interactive and self-contained (`python train.py --config configs/exp1.yaml`).
 
@@ -360,7 +360,7 @@ kubectl delete pod my-gpu-pod
 
 - ☐ Code verified **locally** before requesting cluster GPUs.
 - ☐ Job name identifies **you + the experiment** (`danielar-effort-profiling`, not `test2`).
-- ☐ Exact code pushed to GitHub (`ucsd-pier-lab/...`) and the **commit recorded**.
+- ☐ Exact code pushed to GitHub (`PIER-UCSD/...`) and the **commit recorded**.
 - ☐ Launch command + config file recorded; run logged in the **Group Computing Tracker**.
 - ☐ A 1-GPU **smoke test** succeeded before the full experiment.
 - ☐ Checkpoints/results go to the **PVC**, in a unique experiment directory.
