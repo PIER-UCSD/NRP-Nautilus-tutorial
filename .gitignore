@@ -14,3 +14,8 @@ __pycache__/
 # local results
 results/
 *.log
+
+# raw video files stay local; video/README.md has the hosted link instead
+video/*.mp4
+video/*.mov
+video/*.m4v
