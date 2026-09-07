@@ -414,6 +414,10 @@ issues and PRs are reviewed to keep the guide current.
 | `env/Dockerfile` · `env/requirements-lab.txt` | the pinned lab image — one environment for every student |
 | `env/build_image.sh` | build + push it, and print the digest to pin in your YAML |
 
+**Full written guide (Google Doc):**
+[Shi Group Nautilus Tutorial VF](https://docs.google.com/document/d/16LIGFsQx4pJAzk4mQkSlJZRHg4cxTVEm/edit?usp=sharing&ouid=104520354519814717079&rtpof=true&sd=true)
+— the same content as this README, in document form.
+
 **Read next when you need more detail:**
 [NRP User Docs](https://docs.nrp.ai) · [Running Batch Jobs](https://docs.nrp.ai/userdocs/running/jobs/) ·
 [Storage](https://docs.nrp.ai/userdocs/storage/intro/) ·
